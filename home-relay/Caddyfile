@@ -1,0 +1,25 @@
+{
+	# 关闭管理 API（默认 localhost:2019），防止本机进程读取或修改配置中的真实 Key
+	admin off
+	# 不把含密钥的运行配置写入磁盘
+	persist_config off
+}
+
+# 只接收 frpc 从隧道转来的请求，注入真实 Key 后转给大模型服务
+:18080 {
+	bind 127.0.0.1
+
+	# 后端地址带路径时（如 https://api.example.com/anthropic），补上路径前缀
+	rewrite * {$LLM_PATH_PREFIX}{uri}
+
+	reverse_proxy {$LLM_UPSTREAM} {
+		flush_interval -1
+		header_up Host {http.reverse_proxy.upstream.host}
+		header_up -X-Forwarded-For
+		header_up -X-Forwarded-Proto
+		header_up -X-Forwarded-Host
+		header_up -Via
+		# 真实 Key 只存在于本机 .env
+		header_up {$BACKEND_AUTH_HEADER} "{$BACKEND_AUTH_VALUE}"
+	}
+}

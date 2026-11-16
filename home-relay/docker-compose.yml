@@ -1,0 +1,27 @@
+services:
+  frpc:
+    image: fatedier/frpc:v0.61.1
+    container_name: frpc
+    network_mode: host
+    restart: always
+    command: ["-c", "/etc/frp/frpc.toml"]
+    # 只传本服务需要的变量；留空时拒绝启动
+    environment:
+      RELAY_HOST: ${RELAY_HOST:?RELAY_HOST 未设置，请在 .env 中填写}
+      FRP_AUTH_TOKEN: ${FRP_AUTH_TOKEN:?FRP_AUTH_TOKEN 未设置，请在 .env 中填写}
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+
+  caddy:
+    image: caddy:2
+    container_name: home-caddy
+    network_mode: host
+    restart: always
+    # 只传本服务需要的变量；真实 Key 不会进入 frpc 容器
+    environment:
+      LLM_UPSTREAM: ${LLM_UPSTREAM:?LLM_UPSTREAM 未设置，请在 .env 中填写}
+      LLM_PATH_PREFIX: ${LLM_PATH_PREFIX:-}
+      BACKEND_AUTH_HEADER: ${BACKEND_AUTH_HEADER:?BACKEND_AUTH_HEADER 未设置，请在 .env 中填写}
+      BACKEND_AUTH_VALUE: ${BACKEND_AUTH_VALUE:?BACKEND_AUTH_VALUE 未设置，请在 .env 中填写}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

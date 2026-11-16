@@ -1,0 +1,67 @@
+{
+	# 关闭管理 API（默认 localhost:2019），防止本机进程读取或修改配置中的密钥
+	admin off
+	# 不把含密钥的运行配置写入 /config/caddy/autosave.json
+	persist_config off
+	# 不开放 80 端口，也就不做 HTTP→HTTPS 跳转
+	auto_https disable_redirects
+	# 不启用 HTTP/3，响应中就不会出现 Alt-Svc
+	servers {
+		protocols h1 h2
+	}
+}
+
+# 转发前清理：不向后端转发代理头和中转 Key
+(sanitize) {
+	header_up -X-Forwarded-For
+	header_up -X-Forwarded-Proto
+	header_up -X-Forwarded-Host
+	header_up -X-Real-IP
+	header_up -Forwarded
+	header_up -Via
+	header_up -X-Api-Key
+	header_up -Authorization
+}
+
+# 鉴权：校验中转 Key（x-api-key 或 Authorization: Bearer）
+# 用法：import guard <服务名> <中转Key>
+(guard) {
+	@unauth_{args[0]} {
+		not header X-Api-Key "{args[1]}"
+		not header Authorization "Bearer {args[1]}"
+	}
+	header @unauth_{args[0]} Content-Type application/json
+	respond @unauth_{args[0]} `{"type":"error","error":{"type":"authentication_error","message":"invalid api key"}}` 401
+}
+
+https://{$RELAY_HOST} {
+	# 自动申请 Let's Encrypt 正式证书；只通过 443 完成验证（TLS-ALPN-01）
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+
+	header {
+		-Server
+		-Via
+	}
+
+	# frp 隧道入口（wss），frpc 用 token 认证
+	handle /~!frp {
+		reverse_proxy 127.0.0.1:7000
+	}
+
+	# llm：/llm/v1/messages → 家里 /v1/messages
+	handle_path /llm/* {
+		import guard llm {$LLM_RELAY_KEY}
+		reverse_proxy 127.0.0.1:18000 {
+			import sanitize
+			flush_interval -1
+		}
+	}
+
+	handle {
+		respond 404
+	}
+}

@@ -1,0 +1,26 @@
+services:
+  frps:
+    image: fatedier/frps:v0.61.1
+    container_name: frps
+    network_mode: host
+    restart: always
+    command: ["-c", "/etc/frp/frps.toml"]
+    # 只传本服务需要的变量；留空时拒绝启动，避免 frp 无鉴权运行
+    environment:
+      FRP_AUTH_TOKEN: ${FRP_AUTH_TOKEN:?FRP_AUTH_TOKEN 未设置，请在 .env 中填写}
+    volumes:
+      - ./frps.toml:/etc/frp/frps.toml:ro
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    network_mode: host
+    restart: always
+    # 只传本服务需要的变量；中转 Key 留空时拒绝启动，避免变成开放代理
+    environment:
+      RELAY_HOST: ${RELAY_HOST:?RELAY_HOST 未设置，请在 .env 中填写}
+      LLM_RELAY_KEY: ${LLM_RELAY_KEY:?LLM_RELAY_KEY 未设置，请在 .env 中填写}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data        # 证书和 ACME 账号保存在这里
+      - ./caddy_config:/config

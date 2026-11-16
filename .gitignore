@@ -1,0 +1,36 @@
+# 密钥与环境配置（只提交 .env.example）
+.env
+.env.*
+!.env.example
+*.env
+.envrc
+
+# 证书与私钥
+*.crt
+*.key
+*.pem
+*.p12
+*.csr
+
+# Caddy 运行时数据（证书、ACME 账号）
+**/caddy_data/
+**/caddy_config/
+
+# 本地覆盖配置
+docker-compose.override.yml
+compose.override.yml
+
+# 日志与临时文件
+*.log
+*.tmp
+*.bak
+
+# 本地工具产物
+.opencode/
+self_docs/
+
+# 编辑器与系统
+.idea/
+.vscode/
+*.swp
+.DS_Store

@@ -1,0 +1,17 @@
+serverAddr = "{{ .Envs.RELAY_HOST }}"
+serverPort = 443
+
+auth.token = "{{ .Envs.FRP_AUTH_TOKEN }}"
+auth.additionalScopes = ["HeartBeats", "NewWorkConns"]
+
+# 家里无需开放入站端口，只需出站 443：经 Caddy 用 wss（TLS）建立隧道
+transport.protocol = "wss"
+# 用系统证书库校验公网机器证书（不配置时 frp 会跳过校验）
+transport.tls.trustedCaFile = "/etc/ssl/certs/ca-certificates.crt"
+
+[[proxies]]
+name = "llm"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 18080
+remotePort = 18000

@@ -1,0 +1,10 @@
+bindAddr = "127.0.0.1"
+bindPort = 7000
+
+auth.token = "{{ .Envs.FRP_AUTH_TOKEN }}"
+auth.additionalScopes = ["HeartBeats", "NewWorkConns"]
+
+# 各服务的映射端口只监听本机，供 Caddy 转发
+proxyBindAddr = "127.0.0.1"
+# 只放行实际用到的端口；新增服务时在这里追加，如 { single = 18001 }
+allowPorts = [ { single = 18000 } ]
